@@ -57,11 +57,9 @@ body {
 
 /* Composição neutra usada enquanto não existe a imagem de fundo:
    uma luz quente difusa à direita (como uma janela ao entardecer),
-   uma parede mais escura à esquerda e linhas arquitetônicas sutis. */
+   e uma parede mais escura à esquerda. */
 .auth-bg--fallback {
   background-image:
-    linear-gradient(90deg, transparent 0 29.9%, rgba(241, 229, 208, 0.06) 30%, transparent 30.15%),
-    linear-gradient(90deg, transparent 0 63.9%, rgba(241, 229, 208, 0.05) 64%, transparent 64.12%),
     radial-gradient(ellipse 55% 65% at 80% 30%, rgba(241, 229, 208, 0.26), transparent 72%),
     radial-gradient(ellipse 50% 28% at 70% 95%, rgba(241, 229, 208, 0.1), transparent 70%),
     linear-gradient(90deg, #0e0c0b 0%, #141210 30%, #201c19 62%, #332d28 100%);
