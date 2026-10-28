@@ -12,6 +12,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Esconde o botão "N" do Next.js que aparece só em desenvolvimento.
+  devIndicators: false,
   serverExternalPackages: ["@node-rs/argon2"],
   experimental: {
     authInterrupts: true,
