@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #141210;
+  --color-sand: #f1e5d0;
+  --color-paper: #faf7f2;
+  --color-stone: #77736e;
+  /* Variação mais escura do cinza para textos pequenos sobre o bege (contraste AA). */
+  --color-stone-strong: #5e5a55;
+  --color-danger: #9b2c1f;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-cormorant), ui-serif, Georgia, serif;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* Foco visível e consistente para navegação por teclado. */
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+.on-dark :focus-visible {
+  outline-color: var(--color-sand);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Fundo das telas de autenticação */
+.auth-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background-color: #141210;
+}
+
+.auth-bg--image {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Composição neutra usada enquanto não existe a imagem de fundo:
+   uma luz quente difusa à direita (como uma janela ao entardecer),
+   e uma parede mais escura à esquerda. */
+.auth-bg--fallback {
+  background-image:
+    radial-gradient(ellipse 55% 65% at 80% 30%, rgba(241, 229, 208, 0.26), transparent 72%),
+    radial-gradient(ellipse 50% 28% at 70% 95%, rgba(241, 229, 208, 0.1), transparent 70%),
+    linear-gradient(90deg, #0e0c0b 0%, #141210 30%, #201c19 62%, #332d28 100%);
+}
+
+/* Escurece a lateral esquerda para dar leitura ao texto editorial. */
+.auth-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, rgba(20, 18, 16, 0.75) 0%, rgba(20, 18, 16, 0.3) 38%, rgba(20, 18, 16, 0) 70%),
+    linear-gradient(0deg, rgba(20, 18, 16, 0.35), transparent 30%);
+}
+
+@media (max-width: 767px) {
+  .auth-overlay {
+    background: rgba(20, 18, 16, 0.55);
+  }
+}
