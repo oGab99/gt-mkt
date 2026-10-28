@@ -22,7 +22,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
     <AuthShell>
       <AuthCard labelledBy="login-title">
-        <AuthCardHeader id="login-title" title="Bem-vindo" description="Faça login para acessar sua conta." />
+        <AuthCardHeader id="login-title" title="Entrar" hideTitle description="Faça login para acessar sua conta." />
         <LoginForm notice={notice} />
       </AuthCard>
     </AuthShell>

@@ -83,14 +83,30 @@ export function AuthCard({ children, labelledBy }: { children: ReactNode; labell
   );
 }
 
-export function AuthCardHeader({ id, title, description }: { id: string; title: string; description?: ReactNode }) {
+export function AuthCardHeader({
+  id,
+  title,
+  description,
+  hideTitle,
+}: {
+  id: string;
+  title: string;
+  description?: ReactNode;
+  /** Esconde o título visualmente (continua disponível para leitores de tela). */
+  hideTitle?: boolean;
+}) {
   return (
     <div className="flex flex-col items-center text-center">
       <Logo className="h-[72px] w-[104px] text-[14px]" />
-      <h1 id={id} className="mt-7 font-serif text-[2.4rem] leading-none font-medium sm:text-[2.75rem]">
+      <h1
+        id={id}
+        className={hideTitle ? "sr-only" : "mt-7 font-serif text-[2.4rem] leading-none font-medium sm:text-[2.75rem]"}
+      >
         {title}
       </h1>
-      {description ? <p className="mt-3 text-[14px] leading-relaxed text-stone-strong">{description}</p> : null}
+      {description ? (
+        <p className={`${hideTitle ? "mt-6" : "mt-3"} text-[14px] leading-relaxed text-stone-strong`}>{description}</p>
+      ) : null}
     </div>
   );
 }
