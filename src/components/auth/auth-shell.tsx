@@ -97,7 +97,10 @@ export function AuthCardHeader({
 }) {
   return (
     <div className="flex flex-col items-center text-center">
-      <Logo className="h-[72px] w-[104px] text-[14px]" />
+      <Logo
+        className="h-[72px] w-[104px] text-[14px]"
+        imageClassName="aspect-[1400/414] w-[min(220px,70%)] sm:w-[260px]"
+      />
       <h1
         id={id}
         className={hideTitle ? "sr-only" : "mt-7 font-serif text-[2.4rem] leading-none font-medium sm:text-[2.75rem]"}

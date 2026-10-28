@@ -2,11 +2,11 @@ import Image from "next/image";
 import { BRAND_ASSETS, publicAssetExists } from "@/lib/brand";
 
 /** Logo do card. Sem o arquivo de logo, mostra o texto "GT STUDIO". */
-export function Logo({ className = "" }: { className?: string }) {
+export function Logo({ className = "", imageClassName = "" }: { className?: string; imageClassName?: string }) {
   if (publicAssetExists(BRAND_ASSETS.logo)) {
     return (
-      <span className={`relative block ${className}`}>
-        <Image src={BRAND_ASSETS.logo} alt="GT Studio" fill sizes="160px" priority className="object-contain" />
+      <span className={`relative block ${imageClassName}`}>
+        <Image src={BRAND_ASSETS.logo} alt="GT Studio" fill sizes="(max-width: 640px) 220px, 280px" priority className="object-contain" />
       </span>
     );
   }
