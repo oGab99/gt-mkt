@@ -74,7 +74,7 @@ export async function getNotifications(ctx: AppContext): Promise<NotificationIte
             agencyId: ctx.agency.id,
             status: "PENDING",
             dueDate: { lt: start },
-            ...(ctx.companyIds === null ? {} : { OR: [{ companyId: null }, { companyId: { in: ctx.companyIds } }] }),
+            ...(ctx.companyIds === null ? {} : { companyId: { in: ctx.companyIds } }),
           },
         })
       : 0,

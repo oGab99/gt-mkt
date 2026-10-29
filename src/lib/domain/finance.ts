@@ -63,7 +63,8 @@ export async function materializeRecurrences(agencyId: string) {
 function scopeWhere(agencyId: string, companyIds: string[] | null) {
   return {
     agencyId,
-    ...(companyIds === null ? {} : { OR: [{ companyId: null }, { companyId: { in: companyIds } }] }),
+    // Lançamentos gerais (sem empresa) só aparecem na visão de todas as empresas.
+    ...(companyIds === null ? {} : { companyId: { in: companyIds } }),
   };
 }
 

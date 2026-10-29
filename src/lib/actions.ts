@@ -30,6 +30,7 @@ export async function runAction<T>(fn: () => Promise<T>, message?: string): Prom
         const key = String(issue.path[0] ?? "");
         if (key && !fieldErrors[key]) fieldErrors[key] = issue.message;
       }
+      if (process.env.NODE_ENV !== "production") console.warn("[action] Validação", error.issues.map((i) => `${i.path.join(".")}: ${i.message}`));
       return { ok: false, error: "Revise os campos destacados.", fieldErrors };
     }
     console.error("[action] Erro inesperado", error);
