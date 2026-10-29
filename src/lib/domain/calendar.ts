@@ -22,6 +22,7 @@ export type CalendarItem = {
   companyId: string | null;
   companyName: string | null;
   assigneeName: string | null;
+  assigneeId: string | null;
   description: string | null;
   href: string;
   overdue?: boolean;
@@ -107,6 +108,7 @@ export async function getCalendarItems(ctx: AppContext, from: Date, to: Date, fi
       companyId: e.companyId,
       companyName: e.company?.name ?? null,
       assigneeName: e.assignee?.name ?? null,
+      assigneeId: e.assigneeId,
       description: e.description,
       href: `/calendario?evento=${e.id}`,
     });
@@ -126,6 +128,7 @@ export async function getCalendarItems(ctx: AppContext, from: Date, to: Date, fi
       companyId: t.companyId,
       companyName: t.company.name,
       assigneeName: t.assignee?.name ?? null,
+      assigneeId: t.assigneeId,
       description: t.description,
       href: `/demandas/${t.folderId}?demanda=${t.id}`,
       overdue: t.status !== "DONE" && due.getTime() < now,
@@ -158,6 +161,7 @@ export async function getCalendarItems(ctx: AppContext, from: Date, to: Date, fi
       companyId: p.companyId,
       companyName: p.company.name,
       assigneeName: p.assignee?.name ?? null,
+      assigneeId: p.assigneeId,
       description: p.description,
       href: `/postagens?post=${p.id}`,
       status: published.length ? "PUBLISHED" : scheduled.length ? "SCHEDULED" : "PLANNED",
