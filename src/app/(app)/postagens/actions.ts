@@ -9,6 +9,7 @@ import { PLATFORMS, STAGES } from "@/lib/domain/labels";
 import { loadPostForCtx } from "@/lib/domain/posts";
 import { parseLocalDateTime } from "@/lib/tz";
 import { ATTACHMENT_TYPES, deleteStored, LIMITS, saveUpload } from "@/lib/storage";
+import { assertPublicationAuthorized, onCaptionEdited } from "@/lib/portal/review";
 
 const CONTENT_TYPES = ["VIDEO", "IMAGE", "CAROUSEL", "OTHER"] as const;
 
@@ -76,7 +77,14 @@ export async function updatePost(postId: string, input: z.input<typeof patchSche
     const patch: Record<string, unknown> = { ...data };
     if (data.companyId && data.companyId !== post.companyId) await assertCompanyAccess(ctx, data.companyId);
     if ("assigneeId" in data) patch.assigneeId = await assertAgencyUser(ctx, data.assigneeId);
+    if (data.companyId && data.companyId !== post.companyId) {
+      // Representantes e aprovações pertencem à empresa: não migram junto.
+      const hasReview = await prisma.postComponent.count({ where: { postId: post.id, versions: { some: {} } } });
+      if (hasReview) throw new UserError("Esta postagem já tem materiais enviados ao cliente. Duplique-a para outra empresa em vez de mudar a empresa.");
+      patch.taskId = null;
+    }
     await prisma.post.update({ where: { id: post.id }, data: patch });
+    if ("caption" in data) await onCaptionEdited(post.id, data.caption ?? null);
     return null;
   });
 }
@@ -181,6 +189,8 @@ export async function scheduleInternal(postId: string, platform: string, when: {
     const t = await prisma.postTarget.findUnique({ where: { postId_platform: { postId: post.id, platform: pl } } });
     if (!t) throw new UserError("Adicione a rede à postagem primeiro.");
     if (["PUBLISHED", "SCHEDULED_PLATFORM", "PUBLISHING"].includes(t.status)) throw new UserError("Esta rede já foi agendada na plataforma ou publicada.");
+    // Conteúdos no fluxo de aprovação do cliente só avançam com as aprovações válidas.
+    await assertPublicationAuthorized(post.id);
     await prisma.postTarget.update({ where: { id: t.id }, data: { status: "SCHEDULED_INTERNAL", scheduledAt: at, lastError: null } });
     return null;
   }, "Agendamento interno salvo.");
@@ -240,8 +250,9 @@ export async function uploadPostMedia(postId: string, form: FormData) {
 export async function deletePostMedia(fileId: string) {
   return runAction(async () => {
     const ctx = await requireActionPermission("posts", "edit");
-    const f = await prisma.storedFile.findFirst({ where: { id: id.parse(fileId), agencyId: ctx.agency.id }, select: { postId: true } });
+    const f = await prisma.storedFile.findFirst({ where: { id: id.parse(fileId), agencyId: ctx.agency.id }, select: { postId: true, componentVersion: { select: { id: true } } } });
     if (!f?.postId) throw new UserError("Arquivo não encontrado.");
+    if (f.componentVersion) throw new UserError("Arquivos de versões enviadas ao cliente fazem parte do histórico de aprovações e não podem ser removidos.");
     await loadPostForCtx(ctx, f.postId);
     await deleteStored(fileId);
     return null;

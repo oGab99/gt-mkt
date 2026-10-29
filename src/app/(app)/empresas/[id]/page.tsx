@@ -9,6 +9,9 @@ import { Avatar, EmptyState, ProgressBar } from "@/components/app/ui/misc";
 import { PlatformIcon } from "@/components/app/platform-icon";
 import { CompanyMenu } from "@/components/app/companies/company-actions";
 import { DeleteGoalButton, GoalForm, LogoUploader } from "@/components/app/companies/company-detail-client";
+import { PortalHeaderActions, PortalTab } from "@/components/app/companies/portal-client";
+import { companyPortalOverview } from "@/lib/portal/access";
+import { isEmailConfigured } from "@/lib/notifications/email";
 import { can, canAccessCompany, requirePagePermission } from "@/lib/auth/context";
 import { prisma } from "@/lib/db";
 import { deliveredByCompany, pipelineBucket, PIPELINE_LABELS } from "@/lib/domain/posts-metrics";
@@ -25,6 +28,7 @@ const TABS = [
   { key: "postagens", label: "Postagens" },
   { key: "demandas", label: "Demandas" },
   { key: "agenda", label: "Agenda" },
+  { key: "portal", label: "Portal do cliente" },
 ] as const;
 
 export default async function CompanyPage({ params, searchParams }: PageProps<"/empresas/[id]">) {
@@ -39,7 +43,10 @@ export default async function CompanyPage({ params, searchParams }: PageProps<"/
   });
   if (!company) notFound();
 
-  const tab = TABS.find((t) => t.key === sp.aba)?.key ?? "visao";
+  const canPortal = can(ctx, "portal", "view") || can(ctx, "portal", "manage");
+  const tabs = TABS.filter((t) => t.key !== "portal" || canPortal);
+  const tab = tabs.find((t) => t.key === sp.aba)?.key ?? "visao";
+  const emailReady = isEmailConfigured();
   const canEdit = can(ctx, "companies", "edit");
   const thisMonth = monthStart(now());
   const members = canEdit ? await agencyMembers(ctx) : [];
@@ -93,11 +100,14 @@ export default async function CompanyPage({ params, searchParams }: PageProps<"/
             </div>
           </div>
         </div>
-        <CompanyMenu company={formValues} members={members} canEdit={canEdit} canDelete={can(ctx, "companies", "delete")} />
+        <div className="flex flex-wrap items-center gap-2">
+          <PortalHeaderActions companyId={company.id} canPreview={can(ctx, "portal", "preview")} canManage={can(ctx, "portal", "manage")} emailReady={emailReady} />
+          <CompanyMenu company={formValues} members={members} canEdit={canEdit} canDelete={can(ctx, "companies", "delete")} />
+        </div>
       </header>
 
       <nav className="scroll-thin mb-6 flex gap-1 overflow-x-auto border-b border-line" aria-label="Seções da empresa">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <Link
             key={t.key}
             href={t.key === "visao" ? `/empresas/${id}` : `/empresas/${id}?aba=${t.key}`}
@@ -228,6 +238,7 @@ export default async function CompanyPage({ params, searchParams }: PageProps<"/
       {tab === "postagens" ? <CompanyPosts companyId={id} canView={can(ctx, "posts", "view")} /> : null}
       {tab === "demandas" ? <CompanyTasks companyId={id} canView={can(ctx, "tasks", "view")} /> : null}
       {tab === "agenda" ? <CompanyAgenda ctx={ctx} companyId={id} /> : null}
+      {tab === "portal" ? <PortalTab companyId={id} overview={await companyPortalOverview(ctx, id)} canManage={can(ctx, "portal", "manage")} emailReady={emailReady} /> : null}
     </PageContainer>
   );
 }

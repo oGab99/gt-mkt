@@ -11,6 +11,7 @@ import { resolveCompanyParam } from "@/lib/domain/shell";
 import { APPROVAL_LABELS, PLATFORMS } from "@/lib/domain/labels";
 import { PIPELINE_LABELS, type PipelineBucket } from "@/lib/domain/posts-metrics-labels";
 import { monthKey, now } from "@/lib/tz";
+import { staffReviewData } from "@/lib/portal/queries";
 
 export const metadata: Metadata = { title: "Postagens" };
 
@@ -44,6 +45,7 @@ export default async function PostsPage({ searchParams }: PageProps<"/postagens"
     integrationStatus(ctx),
   ]);
   const memberOptions = members.map(({ id, name }) => ({ id, name }));
+  const review = detail && can(ctx, "portal", "view") ? await staffReviewData(ctx, detail.id) : null;
   const published = posts.filter((p) => p.bucket === "published").length;
 
   return (
@@ -65,6 +67,8 @@ export default async function PostsPage({ searchParams }: PageProps<"/postagens"
           members={memberOptions}
           integrations={integrations}
           perms={{ edit: can(ctx, "posts", "edit"), delete: can(ctx, "posts", "delete"), approve: can(ctx, "posts", "approve"), create: can(ctx, "posts", "create"), integrations: can(ctx, "integrations", "view") }}
+          review={review}
+          reviewPerms={{ share: can(ctx, "portal", "share"), submit: can(ctx, "portal", "submit"), review: can(ctx, "portal", "review"), editPost: can(ctx, "posts", "edit") }}
         />
       ) : null}
     </PageContainer>

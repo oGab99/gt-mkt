@@ -57,5 +57,6 @@ export const config = {
     "/empresas/:path*",
     "/configuracoes/:path*",
     "/api/arquivos/:path*",
+    "/api/notificacoes/:path*",
   ],
 };

@@ -116,3 +116,10 @@ export async function pendingApprovalCount(ctx: AppContext, companyId: string | 
     where: { agencyId: ctx.agency.id, deletedAt: null, approvalStatus: "PENDING", company: { deletedAt: null }, ...companyScope(ctx), ...(companyId ? { companyId } : {}) },
   });
 }
+
+/** Conteúdos em que o cliente pediu alterações (aguardando nova versão da equipe). */
+export async function changesRequestedCount(ctx: AppContext, companyId: string | null) {
+  return prisma.post.count({
+    where: { agencyId: ctx.agency.id, deletedAt: null, approvalStatus: "CHANGES_REQUESTED", company: { deletedAt: null }, ...companyScope(ctx), ...(companyId ? { companyId } : {}) },
+  });
+}

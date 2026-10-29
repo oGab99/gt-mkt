@@ -82,6 +82,7 @@ export async function getCalendarItems(ctx: AppContext, from: Date, to: Date, fi
             ...assignee,
             OR: [
               { plannedAt: { gte: from, lt: to } },
+              { reviewDueAt: { gte: from, lt: to } },
               { targets: { some: { OR: [{ scheduledAt: { gte: from, lt: to } }, { publishedAt: { gte: from, lt: to } }] } } },
             ],
           },
@@ -137,6 +138,26 @@ export async function getCalendarItems(ctx: AppContext, from: Date, to: Date, fi
   }
 
   for (const p of posts) {
+    // Prazo de revisão do cliente (Portal do Cliente), enquanto houver aprovação em aberto.
+    if (p.reviewDueAt && p.reviewDueAt >= from && p.reviewDueAt < to && ["PENDING", "CHANGES_REQUESTED", "NOT_SUBMITTED"].includes(p.approvalStatus) && wants("APPROVAL")) {
+      items.push({
+        id: `review:${p.id}`,
+        source: "post",
+        sourceId: p.id,
+        category: "APPROVAL",
+        title: `Prazo de aprovação do cliente: ${p.title}`,
+        start: p.reviewDueAt.toISOString(),
+        end: p.reviewDueAt.toISOString(),
+        allDay: true,
+        companyId: p.companyId,
+        companyName: p.company.name,
+        assigneeName: p.assignee?.name ?? null,
+        assigneeId: p.assigneeId,
+        description: null,
+        href: `/postagens?post=${p.id}`,
+        overdue: p.reviewDueAt.getTime() < now,
+      });
+    }
     // Data de referência: publicação concluída > agendamento > data prevista.
     const published = p.targets.filter((t) => t.publishedAt).map((t) => t.publishedAt!.getTime());
     const scheduled = p.targets.filter((t) => t.scheduledAt).map((t) => t.scheduledAt!.getTime());

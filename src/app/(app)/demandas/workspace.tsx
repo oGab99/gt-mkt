@@ -93,7 +93,7 @@ export async function TasksWorkspace({ ctx, sp, folder }: { ctx: AppContext; sp:
         </div>
       </div>
       {detail ? (
-        <TaskDrawer key={detail.id} task={detail} members={memberOptions} folders={detailFolders} canEdit={canEdit} canDelete={can(ctx, "tasks", "delete")} canManage={canManage} userId={ctx.user.id} />
+        <TaskDrawer key={detail.id} task={detail} members={memberOptions} folders={detailFolders} canEdit={canEdit} canDelete={can(ctx, "tasks", "delete")} canManage={canManage} canShare={can(ctx, "portal", "share")} userId={ctx.user.id} />
       ) : null}
     </PageContainer>
   );

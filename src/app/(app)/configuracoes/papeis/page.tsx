@@ -5,7 +5,7 @@ import { Badge } from "@/components/app/ui/badge";
 import { NewRoleButton, PermissionMatrix, RoleMenu } from "@/components/app/settings/roles-client";
 import { can, requirePagePermission } from "@/lib/auth/context";
 import { agencyRoles } from "@/lib/domain/team";
-import { MODULES } from "@/lib/permissions/catalog";
+import { CLIENT_ROLE, MODULES } from "@/lib/permissions/catalog";
 
 export const metadata: Metadata = { title: "Papéis e permissões" };
 
@@ -77,6 +77,29 @@ export default async function RolesPage({ searchParams }: PageProps<"/configurac
           </div>
         </Card>
       ) : null}
+
+      <Card>
+        <CardHeader
+          title={
+            <span className="flex flex-wrap items-center gap-2">
+              {CLIENT_ROLE.name}
+              <Badge tone="outline">Externo</Badge>
+            </span>
+          }
+          description={CLIENT_ROLE.description}
+        />
+        <ul className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1.5 px-5 pb-5 text-[13px] text-muted-strong sm:grid-cols-2">
+          {CLIENT_ROLE.allowed.map((a) => (
+            <li key={a} className="flex gap-2">
+              <span className="mt-[7px] size-1 shrink-0 rounded-full bg-muted" aria-hidden />
+              {a}
+            </li>
+          ))}
+        </ul>
+        <p className="border-t border-line px-5 py-3 text-[12.5px] text-muted-strong">
+          Sem acesso a financeiro, comissões, configurações, comentários internos, demandas não liberadas ou dados de outras empresas. Os representantes são convidados em Empresas › Portal do cliente.
+        </p>
+      </Card>
     </div>
   );
 }

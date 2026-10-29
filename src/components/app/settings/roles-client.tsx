@@ -9,10 +9,11 @@ import { Modal } from "@/components/app/ui/dialog";
 import { Menu, MenuContent, MenuItem, MenuTrigger } from "@/components/app/ui/menu";
 import { useAction } from "@/components/app/ui/use-action";
 import { useConfirm } from "@/components/app/ui/confirm";
-import { ACTION_LABELS, MODULES, type ActionId } from "@/lib/permissions/catalog";
+import { ACTION_LABELS, MODULES, PORTAL_ACTION_LABELS, STANDARD_ACTIONS, type ActionId, type PortalAction } from "@/lib/permissions/catalog";
 import { createRole, deleteRole, setRolePermissions, updateRoleInfo } from "@/app/(app)/configuracoes/papeis/actions";
 
-const ALL_ACTIONS: ActionId[] = ["view", "create", "edit", "delete", "approve", "manage"];
+const ALL_ACTIONS: ActionId[] = [...STANDARD_ACTIONS];
+const PORTAL_ACTIONS = Object.keys(PORTAL_ACTION_LABELS) as PortalAction[];
 
 /**
  * Matriz módulo × ação. Sem "Visualizar", as demais ações do módulo ficam
@@ -45,7 +46,7 @@ export function PermissionMatrix({
       if (action !== "view" && canToggle(`${module}:view`)) next.add(`${module}:view`);
     } else {
       next.delete(key);
-      if (action === "view") for (const a of ALL_ACTIONS) if (canToggle(`${module}:${a}`)) next.delete(`${module}:${a}`);
+      if (action === "view") for (const a of [...ALL_ACTIONS, ...PORTAL_ACTIONS]) if (canToggle(`${module}:${a}`)) next.delete(`${module}:${a}`);
     }
     setSelected(next);
   };
@@ -73,7 +74,7 @@ export function PermissionMatrix({
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
-            {MODULES.map((m) => (
+            {MODULES.filter((m) => m.id !== "portal").map((m) => (
               <tr key={m.id}>
                 <th scope="row" className="px-5 py-2.5 text-left font-medium text-fg">
                   {m.label}
@@ -105,6 +106,33 @@ export function PermissionMatrix({
           </tbody>
         </table>
       </div>
+      <fieldset className="border-t border-line px-5 py-4">
+        <legend className="sr-only">Portal do Cliente</legend>
+        <p className="text-[13.5px] font-medium text-fg" aria-hidden>
+          Portal do Cliente
+        </p>
+        <p className="mt-0.5 text-[12.5px] text-muted-strong">Acesso dos clientes, conteúdos compartilhados e aprovações.</p>
+        <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2.5 sm:grid-cols-2">
+          {PORTAL_ACTIONS.map((a) => {
+            const key = `portal:${a}`;
+            return (
+              <label key={a} className="flex cursor-pointer items-start gap-2.5">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 shrink-0 accent-fg disabled:opacity-50"
+                  checked={selected.has(key)}
+                  disabled={!canToggle(key)}
+                  onChange={(e) => toggle("portal", a, e.target.checked)}
+                />
+                <span>
+                  <span className="block text-[13.5px] text-fg">{PORTAL_ACTION_LABELS[a].label}</span>
+                  <span className="block text-[12px] leading-snug text-muted-strong">{PORTAL_ACTION_LABELS[a].hint}</span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
       {!locked ? (
         <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line px-5 py-3">
           {dirty ? <span className="mr-auto text-[12.5px] text-muted-strong">Alterações não salvas</span> : null}

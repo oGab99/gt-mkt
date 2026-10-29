@@ -36,6 +36,22 @@ export async function getNotifications(ctx: AppContext): Promise<NotificationIte
   const start = dayStart(today);
   const items: NotificationItem[] = [];
 
+  const stored = await prisma.notification.findMany({
+    where: { userId: ctx.user.id, agencyId: ctx.agency.id, readAt: null },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+    select: { id: true, type: true, title: true, body: true },
+  });
+  for (const n of stored) {
+    items.push({
+      id: `n:${n.id}`,
+      title: n.title,
+      detail: n.body ?? "",
+      href: `/api/notificacoes/${n.id}`,
+      tone: n.type === "review.changes_requested" ? "negative" : n.type === "review.approved" ? "neutral" : "warning",
+    });
+  }
+
   const [tasks, approvals, failed, overdueEntries] = await Promise.all([
     can(ctx, "tasks", "view")
       ? prisma.task.findMany({

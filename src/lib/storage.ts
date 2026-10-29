@@ -1,6 +1,8 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
-import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { mkdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
+import { Readable } from "node:stream";
 import path from "node:path";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -85,6 +87,55 @@ export async function readStored(storageKey: string) {
   return readFile(target);
 }
 
+function resolveKey(storageKey: string) {
+  const root = storageRoot();
+  const target = path.resolve(/*turbopackIgnore: true*/ root, storageKey);
+  if (!target.startsWith(root + path.sep)) throw new Error("Caminho inválido");
+  return target;
+}
+
+/**
+ * Resposta HTTP de um arquivo privado, com suporte a Range (necessário para
+ * avançar no vídeo e para reprodução no Safari/iOS). A autorização é feita
+ * por quem chama.
+ */
+export async function storedFileResponse(request: Request, file: { storageKey: string; mimeType: string; filename: string }) {
+  let target: string;
+  let size: number;
+  try {
+    target = resolveKey(file.storageKey);
+    size = (await stat(target)).size;
+  } catch {
+    return new Response("Não encontrado", { status: 404, headers: { "Cache-Control": "no-store" } });
+  }
+  const url = new URL(request.url);
+  const download = url.searchParams.get("download") === "1";
+  const inline = !download && (file.mimeType.startsWith("image/") || file.mimeType.startsWith("video/") || file.mimeType === "application/pdf");
+  const headers: Record<string, string> = {
+    "Content-Type": file.mimeType,
+    "Content-Disposition": `${inline ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(file.filename)}`,
+    "Cache-Control": "private, max-age=300",
+    "Accept-Ranges": "bytes",
+    "X-Content-Type-Options": "nosniff",
+    "Content-Security-Policy": "default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'; sandbox",
+  };
+
+  const range = request.headers.get("range")?.match(/^bytes=(\d*)-(\d*)$/);
+  if (range && (range[1] || range[2])) {
+    let start = range[1] ? Number(range[1]) : size - Number(range[2]);
+    let end = range[1] && range[2] ? Number(range[2]) : size - 1;
+    start = Math.max(0, start);
+    end = Math.min(end, size - 1);
+    if (start > end || start >= size) {
+      return new Response(null, { status: 416, headers: { "Content-Range": `bytes */${size}` } });
+    }
+    const stream = Readable.toWeb(createReadStream(target, { start, end })) as ReadableStream;
+    return new Response(stream, { status: 206, headers: { ...headers, "Content-Range": `bytes ${start}-${end}/${size}`, "Content-Length": String(end - start + 1) } });
+  }
+  const stream = Readable.toWeb(createReadStream(target)) as ReadableStream;
+  return new Response(stream, { headers: { ...headers, "Content-Length": String(size) } });
+}
+
 export async function deleteStored(fileId: string) {
   const f = await prisma.storedFile.delete({ where: { id: fileId } }).catch(() => null);
   if (!f) return;
@@ -98,6 +149,7 @@ function describe(types: string[]) {
   return [...names].join(", ");
 }
 
-export const LIMITS = { image: 5 * MB, attachment: 50 * MB };
+export const LIMITS = { image: 5 * MB, attachment: 50 * MB, cover: 15 * MB, reviewVideo: 200 * MB };
+export const VIDEO_TYPES = ["video/mp4", "video/quicktime"];
 
 export const fileUrl = (id: string | null | undefined) => (id ? `/api/arquivos/${id}` : null);
