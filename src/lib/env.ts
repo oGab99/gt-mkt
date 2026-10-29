@@ -24,6 +24,10 @@ const schema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
   MAIL_FROM: z.string().optional(),
+  // Pasta privada dos arquivos enviados (fora de /public).
+  STORAGE_DIR: z.string().default("./storage"),
+  // Chave de 32 bytes em base64 para cifrar tokens OAuth das integrações.
+  INTEGRATION_ENCRYPTION_KEY: z.string().optional(),
 });
 
 function load() {

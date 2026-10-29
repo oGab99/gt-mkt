@@ -88,3 +88,6 @@ export const toTimeInput = (d: Date | string | null | undefined) => (d ? fmt(d, 
 export function isSameDayTz(a: Date, b: Date) {
   return fmt(a, "yyyy-MM-dd") === fmt(b, "yyyy-MM-dd");
 }
+
+/** "outubro de 2026" → "Outubro de 2026" */
+export const capFirst = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);

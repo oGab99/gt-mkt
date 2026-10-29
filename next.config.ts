@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@node-rs/argon2"],
   experimental: {
     authInterrupts: true,
+    // Uploads (anexos e mídias) passam por Server Actions; o limite real por
+    // tipo de arquivo é validado no servidor em src/lib/storage.ts.
+    serverActions: { bodySizeLimit: "60mb" },
+    proxyClientMaxBodySize: "60mb",
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
