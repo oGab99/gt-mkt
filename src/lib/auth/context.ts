@@ -88,12 +88,18 @@ export async function requirePagePermission(module: ModuleId, action: ActionId =
   return ctx;
 }
 
-/** Para Server Actions: lança AccessError em vez de redirecionar. */
-export async function requireActionPermission(module: ModuleId, action: ActionId) {
+/** Para Server Actions: exige sessão válida; lança AccessError em vez de redirecionar. */
+export async function requireActionContext() {
   const session = await getSession();
   if (!session || session.user.mustChangePassword) throw new AccessError("Sua sessão expirou. Entre novamente.");
   const ctx = await getAppContext();
   if (!ctx) throw new AccessError();
+  return ctx;
+}
+
+/** Para Server Actions: lança AccessError em vez de redirecionar. */
+export async function requireActionPermission(module: ModuleId, action: ActionId) {
+  const ctx = await requireActionContext();
   if (!can(ctx, module, action)) throw new AccessError();
   return ctx;
 }
