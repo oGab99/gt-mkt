@@ -138,31 +138,8 @@ export async function companyProgress(scope: Scope, monthStart: Date, monthEndEx
   };
 }
 
-export type PipelineBucket = "creating" | "editing" | "approval" | "approved" | "scheduled" | "published";
-
-export const PIPELINE_LABELS: Record<PipelineBucket, string> = {
-  creating: "Em criação",
-  editing: "Em edição",
-  approval: "Em aprovação",
-  approved: "Aprovadas",
-  scheduled: "Agendadas",
-  published: "Publicadas",
-};
-
-/** Classifica um conteúdo em UMA etapa do fluxo (a mais avançada). */
-export function pipelineBucket(post: {
-  productionStage: string;
-  approvalStatus: string;
-  targets: { status: string }[];
-}): PipelineBucket {
-  if (post.targets.some((t) => t.status === "PUBLISHED")) return "published";
-  if (post.targets.some((t) => ["SCHEDULED_INTERNAL", "SCHEDULED_PLATFORM", "PUBLISHING"].includes(t.status)))
-    return "scheduled";
-  if (post.approvalStatus === "APPROVED") return "approved";
-  if (post.approvalStatus === "PENDING") return "approval";
-  if (["IDEA", "CREATING"].includes(post.productionStage)) return "creating";
-  return "editing";
-}
+import { pipelineBucket, PIPELINE_LABELS, type PipelineBucket } from "@/lib/domain/posts-metrics-labels";
+export { pipelineBucket, PIPELINE_LABELS, type PipelineBucket };
 
 /** Contagem do fluxo de produção. Publicadas = entregues no intervalo. */
 export async function pipelineCounts(scope: Scope, from: Date, to: Date, companyId?: string | null) {
