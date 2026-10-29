@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { canAccessCompany, companyFilter, companyScope, type AppContext } from "@/lib/auth/context";
 import { fileUrl } from "@/lib/storage";
+import { taskClientRequests } from "@/lib/portal/queries";
 
 export type TaskRow = {
   id: string;
@@ -127,6 +128,8 @@ export async function taskDetail(ctx: AppContext, taskId: string) {
     notes: t.notes ?? "",
     status: t.status,
     priority: t.priority,
+    clientVisible: t.clientVisible,
+    clientRequests: await taskClientRequests(ctx, t.id),
     startDate: t.startDate?.toISOString() ?? null,
     dueDate: t.dueDate?.toISOString() ?? null,
     completedAt: t.completedAt?.toISOString() ?? null,

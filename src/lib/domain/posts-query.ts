@@ -46,7 +46,7 @@ export async function listPosts(ctx: AppContext, f: PostFilters = {}): Promise<P
       company: { select: { name: true } },
       assignee: { select: { id: true, name: true, nickname: true, image: true } },
       targets: true,
-      _count: { select: { media: true } },
+      _count: { select: { media: { where: { componentVersion: { is: null } } } } },
     },
     orderBy: [{ plannedAt: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }],
     take: 1000,
@@ -78,7 +78,7 @@ export async function postDetail(ctx: AppContext, postId: string) {
       createdBy: { select: { name: true, nickname: true } },
       targets: true,
       approvals: { orderBy: { createdAt: "desc" }, include: { actor: { select: { name: true, nickname: true } } } },
-      media: { orderBy: { createdAt: "desc" }, select: { id: true, filename: true, mimeType: true, size: true } },
+      media: { where: { componentVersion: { is: null } }, orderBy: { createdAt: "desc" }, select: { id: true, filename: true, mimeType: true, size: true } },
     },
   });
   if (!p || !canAccessCompany(ctx, p.companyId)) return null;

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { Check, Download, FileText, ImageIcon, Paperclip, Plus, Trash2, Video, X } from "lucide-react";
 import { Drawer } from "@/components/app/ui/dialog";
@@ -26,6 +27,8 @@ import {
   updateTask,
   uploadTaskAttachment,
 } from "@/app/(app)/demandas/actions";
+import { setTaskClientVisible } from "@/app/(app)/demandas/portal-actions";
+import { COMPONENT_LABELS, formatTimestamp, versionLabel } from "@/lib/portal/rules";
 
 type Props = {
   task: TaskDetail;
@@ -34,6 +37,7 @@ type Props = {
   canEdit: boolean;
   canDelete: boolean;
   canManage: boolean;
+  canShare: boolean;
   userId: string;
 };
 
@@ -91,7 +95,7 @@ function Footer({ task, canEdit, canDelete, onClose }: Props & { onClose: () => 
   );
 }
 
-function Body({ task, members, folders, canEdit, canManage, userId }: Props) {
+function Body({ task, members, folders, canEdit, canManage, canShare, userId }: Props) {
   const { run } = useAction();
   const save = (patch: Parameters<typeof updateTask>[1]) => run(() => updateTask(task.id, patch), { success: undefined });
   const [title, setTitle] = useState(task.title);
@@ -165,6 +169,13 @@ function Body({ task, members, folders, canEdit, canManage, userId }: Props) {
         <dd className="flex gap-1">
           <DueEditor task={task} disabled={!canEdit} onSave={(v) => save({ dueDate: v })} />
         </dd>
+        <dt className="text-muted-strong">Portal</dt>
+        <dd>
+          <label className="inline-flex h-9 items-center gap-2 px-2 text-[13px]">
+            <input type="checkbox" className="size-4 accent-fg" disabled={!canShare} checked={task.clientVisible} onChange={(e) => run(() => setTaskClientVisible(task.id, e.target.checked))} />
+            Visível para o cliente
+          </label>
+        </dd>
         <dt className="text-muted-strong">Pasta</dt>
         <dd>
           <select className={fieldCls} disabled={!canEdit} value={task.folder.id} onChange={(e) => save({ folderId: e.target.value })}>
@@ -189,6 +200,7 @@ function Body({ task, members, folders, canEdit, canManage, userId }: Props) {
         />
       </Section>
 
+      <ClientRequests task={task} />
       <Subtasks task={task} canEdit={canEdit} />
       <Checklist task={task} canEdit={canEdit} />
       <Attachments task={task} canEdit={canEdit} />
@@ -461,3 +473,32 @@ function Comments({ task, userId, canManage }: { task: TaskDetail; userId: strin
   );
 }
 
+
+/** Pedidos de alteração do cliente vindos das postagens ligadas a esta demanda. */
+function ClientRequests({ task }: { task: TaskDetail }) {
+  if (!task.clientRequests.length) return null;
+  const open = task.clientRequests.filter((r) => !r.resolvedAt).length;
+  return (
+    <Section title="Pedidos do cliente" count={open ? `${open} em aberto` : "atendidos"}>
+      <ul className="space-y-2">
+        {task.clientRequests.map((r) => (
+          <li key={r.id} className={`rounded-lg border px-3 py-2 text-[12.5px] ${r.resolvedAt ? "border-line text-muted-strong" : "border-[#F4E3DF] bg-[#FBF3F1]"}`}>
+            <p>
+              <Link href={`/postagens?post=${r.postId}`} className="font-medium text-fg hover:underline">
+                {r.postTitle}
+              </Link>{" "}
+              · {COMPONENT_LABELS[r.kind]} {versionLabel(r.versionNumber).toLowerCase()} · {r.actorName} · {fmtDateTime(r.createdAt)}
+              {r.resolvedAt ? " · atendido com nova versão" : ""}
+            </p>
+            {r.comment ? (
+              <p className="mt-0.5 whitespace-pre-line text-fg">
+                {r.timestampMs !== null ? <strong className="mr-1 tabular-nums">{formatTimestamp(r.timestampMs)} —</strong> : null}
+                {r.comment}
+              </p>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+}

@@ -8,7 +8,7 @@ import { Badge } from "@/components/app/ui/badge";
 import { DeliveriesChart } from "@/components/app/dashboard/deliveries-chart";
 import { can, requirePagePermission } from "@/lib/auth/context";
 import { companyProgress, pipelineCounts, PIPELINE_LABELS, type PipelineBucket } from "@/lib/domain/posts-metrics";
-import { deliveriesSeries, parseChartRange, pendingApprovalCount, upcomingScheduled, type ChartRange } from "@/lib/domain/dashboard";
+import { changesRequestedCount, deliveriesSeries, parseChartRange, pendingApprovalCount, upcomingScheduled, type ChartRange } from "@/lib/domain/dashboard";
 import { getCalendarItems } from "@/lib/domain/calendar";
 import { financeSummary, materializeRecurrences } from "@/lib/domain/finance";
 import { resolveCompanyParam } from "@/lib/domain/shell";
@@ -43,12 +43,13 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   if (canFinance) await materializeRecurrences(ctx.agency.id);
 
   const agendaFrom = dayStart(now());
-  const [progress, pipeline, series, upcoming, pending, agenda, finance] = await Promise.all([
+  const [progress, pipeline, series, upcoming, pending, changesRequested, agenda, finance] = await Promise.all([
     companyProgress(scope, month, monthTo, companyId),
     canPosts ? pipelineCounts(scope, month, monthTo, companyId) : null,
     canPosts ? deliveriesSeries(ctx, range, month, companyId) : null,
     canPosts ? upcomingScheduled(ctx, companyId) : [],
     canPosts ? pendingApprovalCount(ctx, companyId) : 0,
+    canPosts ? changesRequestedCount(ctx, companyId) : 0,
     getCalendarItems(ctx, agendaFrom, plusDays(agendaFrom, 8), { companyId }),
     canFinance ? financeSummary(ctx.agency.id, companyId ? [companyId] : ctx.companyIds, month) : null,
   ]);
@@ -147,13 +148,20 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
           icon={<Clock3 className="size-4" />}
           value={pending}
           footer={
-            pending ? (
-              <Link href="/postagens?aprovacao=PENDING" className="text-[12.5px] font-medium text-fg hover:underline">
-                Revisar conteúdos →
-              </Link>
-            ) : (
-              <p className="text-[12.5px] text-muted-strong">Nada pendente</p>
-            )
+            <div className="space-y-1">
+              {pending ? (
+                <Link href="/postagens?aprovacao=PENDING" className="block text-[12.5px] font-medium text-fg hover:underline">
+                  Ver conteúdos em aprovação →
+                </Link>
+              ) : (
+                <p className="text-[12.5px] text-muted-strong">Nada pendente</p>
+              )}
+              {changesRequested ? (
+                <Link href="/postagens?aprovacao=CHANGES_REQUESTED" className="block text-[12.5px] text-negative hover:underline">
+                  {changesRequested} com alterações solicitadas
+                </Link>
+              ) : null}
+            </div>
           }
         />
         <StatCard

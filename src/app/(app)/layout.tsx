@@ -7,7 +7,7 @@ import { Toaster } from "@/components/app/ui/toaster";
 import { can, requireAppContext } from "@/lib/auth/context";
 import { getNotifications, visibleCompanies } from "@/lib/domain/shell";
 import { monthKey, now } from "@/lib/tz";
-import { signOutAction } from "./actions";
+import { markNotificationsRead, signOutAction } from "./actions";
 import { globalSearch } from "./search-action";
 
 // Área autenticada: sempre renderizada por requisição (sessão e permissões).
@@ -38,6 +38,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             notifications={notifications}
             currentMonth={monthKey(now())}
             search={globalSearch}
+            markAllRead={markNotificationsRead}
           />
           <main id="conteudo" className="flex-1">
             {children}

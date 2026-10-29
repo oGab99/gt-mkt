@@ -29,6 +29,8 @@ import {
   uploadPostMedia,
 } from "@/app/(app)/postagens/actions";
 import { ApprovalBadge, DistributionBadge } from "./post-badges";
+import { ClientReviewPanel, type ReviewPerms } from "./client-review-panel";
+import type { StaffReviewData } from "@/lib/portal/queries";
 
 type Perms = { edit: boolean; delete: boolean; approve: boolean; create: boolean; integrations: boolean };
 type Props = {
@@ -37,6 +39,9 @@ type Props = {
   members: { id: string; name: string }[];
   perms: Perms;
   integrations: Record<string, string>;
+  /** Aprovação do cliente (null sem permissão no Portal do Cliente). */
+  review: StaffReviewData | null;
+  reviewPerms: ReviewPerms;
 };
 
 const fieldCls = "h-9 w-full rounded-lg border border-transparent bg-transparent px-2 text-[13.5px] text-fg outline-none hover:border-line-strong focus:border-fg/40 focus:bg-surface disabled:hover:border-transparent";
@@ -93,7 +98,7 @@ function Footer({ post, perms, onClose }: Props & { onClose: () => void }) {
   );
 }
 
-function Body({ post, companies, members, perms, integrations }: Props) {
+function Body({ post, companies, members, perms, integrations, review, reviewPerms }: Props) {
   const { run } = useAction();
   const save = (patch: Parameters<typeof updatePost>[1]) => run(() => updatePost(post.id, patch));
   const [title, setTitle] = useState(post.title);
@@ -184,7 +189,8 @@ function Body({ post, companies, members, perms, integrations }: Props) {
         </div>
       </Section>
 
-      <Approval post={post} perms={perms} />
+      {review ? <ClientReviewPanel data={review} perms={reviewPerms} companyId={post.company.id} /> : null}
+      {!review?.components.length ? <Approval post={post} perms={perms} /> : null}
       <Distribution post={post} perms={perms} integrations={integrations} />
 
       <Section title="Legenda" aside={<span className="text-[12px] text-muted tabular-nums">{caption.length} / 2.200</span>}>

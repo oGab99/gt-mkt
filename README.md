@@ -50,6 +50,7 @@ npm run db:seed    # idempotente: garante agência, papéis padrão e vínculo d
 | `npm run db:deploy` | Aplica migrações pendentes e gera o cliente |
 | `npm run db:migrate` | Cria uma nova migração (desenvolvimento) e gera o cliente |
 | `npm run db:seed` | Seed idempotente da conta administrativa, agência e papéis |
+| `npm test` | Testes de integração do Portal do Cliente (exige `TEST_DATABASE_URL`) |
 
 ## Primeiro acesso
 
@@ -120,6 +121,54 @@ publicação é simulada.
   fluxo é agendamento interno + registro manual da publicação; quando uma conta
   for conectada, o publicador preencherá `externalId`/`publishedAt` do alvo.
 
+## Portal do Cliente
+
+Módulo dentro do mesmo app (rotas `/portal/*`), sem duplicar empresas,
+postagens, demandas ou arquivos.
+
+- **Na equipe:** em Empresas › empresa, os botões *Visualizar como cliente*
+  (prévia somente leitura, sem aprovar nem comentar) e *Compartilhar
+  progresso* (convite de um representante). A aba *Portal do cliente* controla
+  representantes, quem pode aprovar, etapas visíveis, revogação de convites e
+  sessões. Na postagem, o painel *Aprovação do cliente* define visibilidade,
+  itens obrigatórios (vídeo, legenda, capa) e envia versões. Na demanda,
+  *Visível para o cliente* e os pedidos de alteração vinculados.
+- **Acesso do cliente:** link individual, de uso único, que expira (convite
+  72 h, link de acesso 30 min). Abrir o link não o consome; só o botão
+  *Entrar no portal*. A sessão fica em cookie HttpOnly próprio (`gt_portal`),
+  separado da autenticação da equipe, com expiração por inatividade (14 dias)
+  e limite absoluto (30 dias). Não há link público permanente.
+- **Aprovação:** cada item tem versões numeradas; a decisão fica presa à
+  versão exata. Uma nova versão volta somente aquele item para aprovação. O
+  agendamento/publicação revalida no servidor se todos os itens obrigatórios
+  estão aprovados na versão atual. Aprovar nunca publica sozinho.
+- **Isolamento:** toda consulta do portal filtra por agência + empresa do
+  representante e só enxerga conteúdo liberado. Arquivos passam por
+  `/portal/arquivos/[id]` (aceita `Range`, necessário no iOS), que só entrega o
+  logo da empresa e arquivos de versões visíveis.
+- **Notificações:** internas (sino do topo) e por e-mail via
+  `src/lib/notifications` (SMTP ou Resend). Sem provedor configurado nada é
+  enviado: o convite mostra o link uma única vez para a equipe repassar. Os
+  e-mails não trazem link de autenticação reaproveitável, apenas o convite de
+  uso único ou o endereço do portal.
+- **Permissões novas** (Configurações › Papéis, bloco *Portal do Cliente*):
+  ver, gerenciar acessos, compartilhar conteúdo, pré-visualizar, enviar para
+  aprovação e gerenciar revisões. O Dono tem todas. Papéis já existentes não
+  ganham essas permissões automaticamente.
+- **Lembretes:** `sendPendingApprovalReminders(agencyId)` está pronta para ser
+  chamada por um agendador (cron) quando houver um.
+
+### Testes
+
+```bash
+createdb gtstudio_test   # banco separado
+echo 'TEST_DATABASE_URL="postgresql://.../gtstudio_test"' >> .env
+npm test
+```
+
+O script aplica as migrações no banco de teste, usa uma pasta de arquivos
+temporária e desliga o envio de e-mail.
+
 ## Arquivos enviados
 
 Logos, fotos de perfil, anexos de demandas e mídias de postagens ficam em
@@ -144,6 +193,9 @@ Veja `.env.example` para a lista comentada.
 | `STORAGE_DIR` | não | Pasta privada dos uploads (padrão `./storage`) |
 | `INTEGRATION_ENCRYPTION_KEY` | para integrações | Chave base64 de 32 bytes para cifrar tokens OAuth |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` | para recuperação de senha | Servidor SMTP |
+| `MAIL_PROVIDER` | não | `smtp` (padrão) ou `resend` |
+| `RESEND_API_KEY` | se `MAIL_PROVIDER=resend` | Chave da API do Resend (usa `MAIL_FROM` como remetente) |
+| `TEST_DATABASE_URL` | para `npm test` | Banco **separado** usado pelos testes (é migrado e limpo) |
 
 ## Produção
 

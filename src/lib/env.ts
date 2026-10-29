@@ -24,6 +24,10 @@ const schema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
   MAIL_FROM: z.string().optional(),
+  // Provedor de e-mail transacional: "smtp" ou "resend". Vazio = automático
+  // (Resend se houver RESEND_API_KEY, senão SMTP se configurado).
+  MAIL_PROVIDER: z.enum(["smtp", "resend"]).optional().or(z.literal("").transform(() => undefined)),
+  RESEND_API_KEY: z.string().optional(),
   // Pasta privada dos arquivos enviados (fora de /public).
   STORAGE_DIR: z.string().default("./storage"),
   // Chave de 32 bytes em base64 para cifrar tokens OAuth das integrações.

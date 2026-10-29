@@ -12,7 +12,8 @@
     "db:migrate": "prisma migrate dev && prisma generate",
     "db:deploy": "prisma migrate deploy && prisma generate",
     "db:seed": "prisma db seed",
-    "setup": "prisma migrate deploy && prisma generate && prisma db seed"
+    "setup": "prisma migrate deploy && prisma generate && prisma db seed",
+    "test": "node scripts/test.mjs"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",

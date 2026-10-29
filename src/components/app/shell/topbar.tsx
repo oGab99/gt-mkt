@@ -95,7 +95,9 @@ function PeriodSelect({ currentMonth }: { currentMonth: string }) {
   );
 }
 
-function Notifications({ items }: { items: ShellNotification[] }) {
+function Notifications({ items, markAllRead }: { items: ShellNotification[]; markAllRead?: () => Promise<void> }) {
+  const router = useRouter();
+  const stored = items.some((n) => n.id.startsWith("n:"));
   const tone = { negative: "bg-negative", warning: "bg-warning", neutral: "bg-muted" };
   return (
     <Popover>
@@ -111,21 +113,46 @@ function Notifications({ items }: { items: ShellNotification[] }) {
         ) : null}
       </PopoverTrigger>
       <PopoverContent className="w-[min(92vw,360px)]">
-        <div className="border-b border-line px-4 py-3">
-          <p className="text-[14px] font-semibold text-fg">Notificações</p>
-          <p className="text-[12px] text-muted-strong">Pendências que precisam da sua atenção.</p>
+        <div className="flex items-start justify-between gap-3 border-b border-line px-4 py-3">
+          <div>
+            <p className="text-[14px] font-semibold text-fg">Notificações</p>
+            <p className="text-[12px] text-muted-strong">Pendências e respostas dos clientes.</p>
+          </div>
+          {stored && markAllRead ? (
+            <button
+              type="button"
+              className="shrink-0 text-[12px] font-medium text-muted-strong underline hover:text-fg"
+              onClick={async () => {
+                await markAllRead();
+                router.refresh();
+              }}
+            >
+              Marcar como lidas
+            </button>
+          ) : null}
         </div>
         {items.length ? (
           <ul className="scroll-thin max-h-[380px] overflow-y-auto p-1.5">
             {items.map((n) => (
               <li key={n.id}>
-                <Link href={n.href} className="flex gap-3 rounded-lg px-2.5 py-2.5 hover:bg-canvas">
-                  <span className={`mt-1.5 size-2 shrink-0 rounded-full ${tone[n.tone]}`} aria-hidden />
-                  <span className="min-w-0">
-                    <span className="block text-[13.5px] font-medium text-fg">{n.title}</span>
-                    <span className="block truncate text-[12.5px] text-muted-strong">{n.detail}</span>
-                  </span>
-                </Link>
+                {n.id.startsWith("n:") ? (
+                  // Notificação registrada: abre pela rota que marca como lida (sem pré-carregamento).
+                  <a href={n.href} className="flex gap-3 rounded-lg px-2.5 py-2.5 hover:bg-canvas">
+                    <span className={`mt-1.5 size-2 shrink-0 rounded-full ${tone[n.tone]}`} aria-hidden />
+                    <span className="min-w-0">
+                      <span className="block text-[13.5px] font-medium text-fg">{n.title}</span>
+                      <span className="block truncate text-[12.5px] text-muted-strong">{n.detail}</span>
+                    </span>
+                  </a>
+                ) : (
+                  <Link href={n.href} className="flex gap-3 rounded-lg px-2.5 py-2.5 hover:bg-canvas">
+                    <span className={`mt-1.5 size-2 shrink-0 rounded-full ${tone[n.tone]}`} aria-hidden />
+                    <span className="min-w-0">
+                      <span className="block text-[13.5px] font-medium text-fg">{n.title}</span>
+                      <span className="block truncate text-[12.5px] text-muted-strong">{n.detail}</span>
+                    </span>
+                  </Link>
+                )}
               </li>
             ))}
           </ul>
@@ -231,12 +258,14 @@ export function Topbar({
   notifications,
   currentMonth,
   search,
+  markAllRead,
 }: {
   user: ShellUser;
   companies: { id: string; name: string }[];
   notifications: ShellNotification[];
   currentMonth: string;
   search: SearchFn;
+  markAllRead?: () => Promise<void>;
 }) {
   const pathname = usePathname();
   const showCompany = matches(pathname, COMPANY_FILTER_ROUTES) && companies.length > 0;
@@ -252,7 +281,7 @@ export function Topbar({
           {showCompany ? <CompanySelect companies={companies} /> : null}
           {showPeriod ? <PeriodSelect currentMonth={currentMonth} /> : null}
           <div className="ml-auto flex items-center gap-2 lg:ml-0">
-            <Notifications items={notifications} />
+            <Notifications items={notifications} markAllRead={markAllRead} />
             <Link href="/configuracoes/perfil" className="hidden rounded-full lg:block" aria-label="Meu perfil" title={user.name}>
               <Avatar name={user.name} src={user.image} size={34} />
             </Link>

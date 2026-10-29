@@ -77,4 +77,9 @@ export const RATE_LIMITS = {
   passwordResetRequest: { name: "password:reset-request", limit: 3, windowSeconds: 60 * 60 },
   passwordResetRequestPerIp: { name: "password:reset-request-ip", limit: 10, windowSeconds: 60 * 60 },
   passwordResetSubmit: { name: "password:reset-submit", limit: 10, windowSeconds: 15 * 60 },
+  // Portal do Cliente
+  portalLinkRequest: { name: "portal:link-request", limit: 3, windowSeconds: 60 * 60 },
+  portalLinkRequestPerIp: { name: "portal:link-request-ip", limit: 10, windowSeconds: 60 * 60 },
+  portalTokenPerIp: { name: "portal:token-ip", limit: 30, windowSeconds: 15 * 60 },
+  portalDecision: { name: "portal:decision", limit: 60, windowSeconds: 10 * 60 },
 } satisfies Record<string, RateLimitRule>;
