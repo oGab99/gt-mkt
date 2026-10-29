@@ -8,8 +8,8 @@ export default async function SettingsLayout({ children }: LayoutProps<"/configu
   return (
     <PageContainer>
       <PageHeader title="Configurações" description="Seu perfil, a equipe da agência, permissões e integrações." />
-      <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10">
-        <aside className="lg:sticky lg:top-24 lg:self-start">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10">
+        <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
           <SettingsNav items={settingsNav(ctx)} />
         </aside>
         <div className="min-w-0">{children}</div>

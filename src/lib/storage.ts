@@ -37,7 +37,8 @@ export const ATTACHMENT_TYPES = [...IMAGE_TYPES, "application/pdf", "video/mp4",
 const MB = 1024 * 1024;
 
 export function storageRoot() {
-  return path.resolve(process.cwd(), env.STORAGE_DIR);
+  // Pasta definida em tempo de execução; fora do rastreamento do build.
+  return path.resolve(/*turbopackIgnore: true*/ process.cwd(), env.STORAGE_DIR);
 }
 
 function safeName(name: string) {
@@ -59,7 +60,7 @@ export async function saveUpload(
   }
 
   const key = `${opts.agencyId}/${new Date().toISOString().slice(0, 7)}/${randomBytes(18).toString("hex")}.${kind.ext}`;
-  const target = path.join(storageRoot(), key);
+  const target = path.join(/*turbopackIgnore: true*/ storageRoot(), key);
   await mkdir(path.dirname(target), { recursive: true });
   await writeFile(target, buffer, { mode: 0o600 });
 
@@ -79,7 +80,7 @@ export async function saveUpload(
 
 export async function readStored(storageKey: string) {
   const root = storageRoot();
-  const target = path.resolve(root, storageKey);
+  const target = path.resolve(/*turbopackIgnore: true*/ root, storageKey);
   if (!target.startsWith(root + path.sep)) throw new Error("Caminho inválido");
   return readFile(target);
 }
@@ -88,7 +89,7 @@ export async function deleteStored(fileId: string) {
   const f = await prisma.storedFile.delete({ where: { id: fileId } }).catch(() => null);
   if (!f) return;
   const root = storageRoot();
-  const target = path.resolve(root, f.storageKey);
+  const target = path.resolve(/*turbopackIgnore: true*/ root, f.storageKey);
   if (target.startsWith(root + path.sep)) await unlink(target).catch(() => undefined);
 }
 

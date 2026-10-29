@@ -55,7 +55,7 @@ export default async function ProfilePage() {
         </p>
       </Card>
 
-      <Card>
+      <Card id="senha" className="scroll-mt-24">
         <CardHeader title="Senha" description="Ao trocar a senha, as sessões em outros dispositivos são encerradas." />
         <div className="p-5">
           <PasswordForm />

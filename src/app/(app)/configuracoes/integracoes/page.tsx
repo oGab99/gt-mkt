@@ -6,7 +6,7 @@ import { PlatformIcon } from "@/components/app/platform-icon";
 import { requirePagePermission } from "@/lib/auth/context";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
-import type { PlatformKey } from "@/lib/domain/labels";
+import { PLATFORM_LABELS, type PlatformKey } from "@/lib/domain/labels";
 
 export const metadata: Metadata = { title: "Integrações" };
 
@@ -14,30 +14,34 @@ export const metadata: Metadata = { title: "Integrações" };
  * Provedores previstos. A publicação automática usará apenas APIs oficiais
  * com OAuth; nada aqui é marcado como conectado sem credencial válida.
  */
-const PROVIDERS: { key: string; name: string; platforms: PlatformKey[]; api: string; envVars: string[]; scopes: string }[] = [
+const PROVIDERS: { platform: PlatformKey; description: string; api: string; envVars: string[]; note: string }[] = [
   {
-    key: "meta",
-    name: "Meta (Instagram e Facebook)",
-    platforms: ["INSTAGRAM", "FACEBOOK"],
-    api: "Instagram Graph API e Facebook Pages API",
+    platform: "INSTAGRAM",
+    description: "Publicação de imagens, carrosséis e Reels em contas profissionais.",
+    api: "Instagram Graph API (app da Meta)",
     envVars: ["META_APP_ID", "META_APP_SECRET"],
-    scopes: "Contas profissionais do Instagram vinculadas a uma Página do Facebook.",
+    note: "A conta precisa ser profissional e estar vinculada a uma Página do Facebook.",
   },
   {
-    key: "tiktok",
-    name: "TikTok",
-    platforms: ["TIKTOK"],
+    platform: "FACEBOOK",
+    description: "Publicação em Páginas administradas pela agência.",
+    api: "Facebook Pages API (app da Meta)",
+    envVars: ["META_APP_ID", "META_APP_SECRET"],
+    note: "Usa o mesmo app da Meta do Instagram.",
+  },
+  {
+    platform: "TIKTOK",
+    description: "Envio de vídeos para contas autorizadas.",
     api: "TikTok Content Posting API",
     envVars: ["TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET"],
-    scopes: "Exige aprovação do app pelo TikTok para publicação direta.",
+    note: "A publicação direta exige aprovação do app pelo TikTok.",
   },
   {
-    key: "youtube",
-    name: "YouTube",
-    platforms: ["YOUTUBE"],
+    platform: "YOUTUBE",
+    description: "Envio de vídeos e Shorts para canais autorizados.",
     api: "YouTube Data API v3",
     envVars: ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
-    scopes: "Envio de vídeos para canais autorizados via OAuth do Google.",
+    note: "Autorização feita com a conta Google dona do canal.",
   },
 ];
 
@@ -65,35 +69,42 @@ export default async function IntegrationsPage() {
         </p>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         {PROVIDERS.map((p) => {
-          const connected = p.platforms.some((pl) => {
-            const r = byPlatform.get(pl);
-            return r?.status === "CONNECTED" && r.credential;
-          });
-          const failing = p.platforms.map((pl) => byPlatform.get(pl)).find((r) => r?.status === "ERROR");
+          const row = byPlatform.get(p.platform);
+          const connected = row?.status === "CONNECTED" && Boolean(row.credential);
           return (
-            <Card key={p.key} className="flex flex-col p-5">
+            <Card key={p.platform} className="flex flex-col p-5">
               <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-1.5">
-                  {p.platforms.map((pl) => (
-                    <span key={pl} className="flex size-9 items-center justify-center rounded-lg bg-canvas">
-                      <PlatformIcon platform={pl} className="size-[18px]" />
-                    </span>
-                  ))}
-                </div>
-                {connected ? <Badge tone="positive">Conectada</Badge> : failing ? <Badge tone="negative">Erro</Badge> : <Badge tone="outline">Não configurada</Badge>}
+                <span className="flex size-10 items-center justify-center rounded-xl bg-canvas">
+                  <PlatformIcon platform={p.platform} className="size-5" />
+                </span>
+                {connected ? (
+                  <Badge tone="positive">Conectada</Badge>
+                ) : row?.status === "ERROR" ? (
+                  <Badge tone="negative">Erro na conexão</Badge>
+                ) : (
+                  <span className="flex gap-1.5">
+                    <Badge tone="outline">Não configurada</Badge>
+                    <Badge tone="neutral">Em breve</Badge>
+                  </span>
+                )}
               </div>
-              <h3 className="mt-4 text-[15px] font-semibold text-fg">{p.name}</h3>
-              <p className="mt-1 text-[13px] text-muted-strong">{p.api}</p>
-              <p className="mt-2 text-[12.5px] leading-relaxed text-muted-strong">{p.scopes}</p>
-              <div className="mt-3 rounded-lg bg-canvas px-3 py-2.5 text-[12px] text-muted-strong">
+              <h3 className="mt-4 text-[15px] font-semibold text-fg">{PLATFORM_LABELS[p.platform]}</h3>
+              <p className="mt-1 text-[13.5px] text-muted-strong">{p.description}</p>
+              {connected && row?.accountName ? <p className="mt-2 text-[13px] text-fg">Conta: {row.accountName}</p> : null}
+              <div className="mt-3 rounded-lg bg-canvas px-3 py-2.5 text-[12.5px] text-muted-strong">
                 <p className="font-medium text-fg">Configuração necessária</p>
-                <p className="mt-1 font-mono break-all">{p.envVars.join(", ")}</p>
+                <p className="mt-1">{p.api}</p>
+                <p className="mt-1 font-mono text-[12px] break-all">{p.envVars.join(", ")}</p>
+                <p className="mt-1">{p.note}</p>
               </div>
-              <div className="mt-auto pt-4">
-                <Button variant="secondary" disabled className="w-full" title="A conexão OAuth ainda não está disponível nesta versão.">
-                  Conectar · Em breve
+              <div className="mt-auto flex gap-2 pt-4">
+                <Button variant="primary" disabled className="flex-1" title="A conexão OAuth ainda não está disponível nesta versão.">
+                  Conectar
+                </Button>
+                <Button variant="secondary" disabled className="flex-1" title="Nenhuma conta conectada.">
+                  Desconectar
                 </Button>
               </div>
             </Card>

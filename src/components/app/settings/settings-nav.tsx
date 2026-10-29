@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export type SettingsNavItem = { href: string; label: string; group: string };
+export type SettingsNavItem = { href: string; label: string };
 
 /** Navegação interna de Configurações: lista lateral no desktop, abas roláveis no celular. */
 export function SettingsNav({ items }: { items: SettingsNavItem[] }) {
   const pathname = usePathname();
-  const groups = [...new Set(items.map((i) => i.group))];
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
@@ -27,30 +26,21 @@ export function SettingsNav({ items }: { items: SettingsNavItem[] }) {
           </Link>
         ))}
       </div>
-      <div className="hidden flex-col gap-5 lg:flex">
-        {groups.map((g) => (
-          <div key={g}>
-            <p className="mb-1.5 px-3 text-[11.5px] font-medium tracking-[0.1em] text-muted uppercase">{g}</p>
-            <ul className="flex flex-col gap-0.5">
-              {items
-                .filter((i) => i.group === g)
-                .map((i) => (
-                  <li key={i.href}>
-                    <Link
-                      href={i.href}
-                      aria-current={isActive(i.href) ? "page" : undefined}
-                      className={`block rounded-lg px-3 py-2 text-[14px] transition-colors ${
-                        isActive(i.href) ? "bg-surface font-medium text-fg shadow-[0_0_0_1px_var(--color-line)]" : "text-muted-strong hover:bg-surface/60 hover:text-fg"
-                      }`}
-                    >
-                      {i.label}
-                    </Link>
-                  </li>
-                ))}
-            </ul>
-          </div>
+      <ul className="hidden flex-col gap-0.5 lg:flex">
+        {items.map((i) => (
+          <li key={i.href}>
+            <Link
+              href={i.href}
+              aria-current={isActive(i.href) ? "page" : undefined}
+              className={`block rounded-lg px-3 py-2 text-[14px] transition-colors ${
+                isActive(i.href) ? "bg-surface font-medium text-fg shadow-[0_0_0_1px_var(--color-line)]" : "text-muted-strong hover:bg-surface/60 hover:text-fg"
+              }`}
+            >
+              {i.label}
+            </Link>
+          </li>
         ))}
-      </div>
+      </ul>
     </nav>
   );
 }
