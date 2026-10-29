@@ -9,6 +9,19 @@
   --color-stone-strong: #5e5a55;
   --color-danger: #9b2c1f;
 
+  /* Sistema de gestão */
+  --color-canvas: #f5f1e9;
+  --color-surface: #ffffff;
+  --color-line: #eae7e1;
+  --color-line-strong: #dcd8d0;
+  --color-fg: #171717;
+  --color-muted: #85817b;
+  /* Cinza secundário escurecido para textos pequenos (contraste AA). */
+  --color-muted-strong: #66625c;
+  --color-positive: #4f6b4c;
+  --color-warning: #9a6a1f;
+  --color-negative: #9b3a2c;
+
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-cormorant), ui-serif, Georgia, serif;
 }
@@ -80,3 +93,29 @@ body {
     background: rgba(20, 18, 16, 0.55);
   }
 }
+
+/* Barras de rolagem discretas nas áreas internas */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #dcd8d0 transparent;
+}
+
+@keyframes gt-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+.animate-fade-in {
+  animation: gt-fade-in 0.22s ease-out both;
+}
+
+/* Animações de diálogos e menus */
+@keyframes gt-fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes gt-pop { from { opacity: 0; transform: translate(-50%, -48%) scale(0.98) } to { opacity: 1; transform: translate(-50%, -50%) scale(1) } }
+@keyframes gt-slide { from { transform: translateX(24px); opacity: 0 } to { transform: translateX(0); opacity: 1 } }
+@keyframes gt-slide-left { from { transform: translateX(-24px); opacity: 0 } to { transform: translateX(0); opacity: 1 } }
+@keyframes gt-menu { from { opacity: 0; transform: translateY(-4px) } to { opacity: 1; transform: translateY(0) } }
+.dialog-overlay[data-state="open"] { animation: gt-fade 160ms ease-out }
+.dialog-content[data-state="open"] { animation: gt-pop 180ms cubic-bezier(0.2, 0.8, 0.2, 1) }
+.drawer-content[data-state="open"] { animation: gt-slide 220ms cubic-bezier(0.2, 0.8, 0.2, 1) }
+.drawer-left[data-state="open"] { animation: gt-slide-left 220ms cubic-bezier(0.2, 0.8, 0.2, 1) }
+.menu-content[data-state="open"] { animation: gt-menu 140ms ease-out }

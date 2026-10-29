@@ -14,6 +14,8 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // Esconde o botão "N" do Next.js que aparece só em desenvolvimento.
   devIndicators: false,
+  // Não registrar argumentos de Server Actions no terminal (contêm senhas no login).
+  logging: { serverFunctions: false },
   serverExternalPackages: ["@node-rs/argon2"],
   experimental: {
     authInterrupts: true,
