@@ -21,10 +21,27 @@ model User {
   username           String?   @unique
   role               String    @default("user")
   mustChangePassword Boolean   @default(false)
+  firstName          String?
+  lastName           String?
+  nickname           String?
+  recoveryEmail      String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   sessions           Session[]
   accounts           Account[]
+
+  memberships      AgencyMember[]
+  assignedTasks    Task[]          @relation("TaskAssignee")
+  createdTasks     Task[]          @relation("TaskCreator")
+  assignedSubtasks Subtask[]
+  taskComments     TaskComment[]
+  assignedPosts    Post[]          @relation("PostAssignee")
+  createdPosts     Post[]          @relation("PostCreator")
+  postApprovals    PostApproval[]
+  assignedEvents   CalendarEvent[] @relation("EventAssignee")
+  createdEvents    CalendarEvent[] @relation("EventCreator")
+  ownedCompanies   Company[]       @relation("CompanyOwner")
+  uploadedFiles    StoredFile[]
 
   @@map("user")
 }
@@ -86,4 +103,598 @@ model RateLimit {
 
   @@index([windowStart])
   @@map("rate_limit")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Sistema de gestão
+// Valores monetários em centavos (Int). Datas em UTC; a interface
+// converte para America/Sao_Paulo.
+// ─────────────────────────────────────────────────────────────
+
+model Agency {
+  id                  String    @id @default(cuid())
+  name                String
+  slug                String    @unique
+  timezone            String    @default("America/Sao_Paulo")
+  openingBalanceCents Int       @default(0)
+  openingBalanceDate  DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  members            AgencyMember[]
+  roles              Role[]
+  companies          Company[]
+  folders            Folder[]
+  tasks              Task[]
+  posts              Post[]
+  events             CalendarEvent[]
+  financeEntries     FinanceEntry[]
+  financeRecurrences FinanceRecurrence[]
+  commissions        Commission[]
+  financialGoals     FinancialGoal[]
+  integrations       Integration[]
+  files              StoredFile[]
+
+  @@map("agency")
+}
+
+model AgencyMember {
+  id           String   @id @default(cuid())
+  agencyId     String
+  userId       String
+  roleId       String
+  active       Boolean  @default(true)
+  allCompanies Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  agency    Agency                @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role                  @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  companies MemberCompanyAccess[]
+
+  @@unique([agencyId, userId])
+  @@index([userId])
+  @@map("agency_member")
+}
+
+model MemberCompanyAccess {
+  memberId  String
+  companyId String
+
+  member  AgencyMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  company Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@id([memberId, companyId])
+  @@map("member_company_access")
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  agencyId    String
+  name        String
+  description String?
+  /// Dono da Agência: acesso integral, não editável.
+  isOwner     Boolean  @default(false)
+  /// Papéis criados pelo sistema (podem ter permissões editadas, não podem ser excluídos).
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  agency      Agency           @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  permissions RolePermission[]
+  members     AgencyMember[]
+
+  @@unique([agencyId, name])
+  @@map("role")
+}
+
+model RolePermission {
+  roleId String
+  module String
+  action String
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, module, action])
+  @@map("role_permission")
+}
+
+enum CompanyStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ContractStatus {
+  PROSPECT
+  ACTIVE
+  PAUSED
+  ENDED
+}
+
+enum Platform {
+  INSTAGRAM
+  FACEBOOK
+  TIKTOK
+  YOUTUBE
+}
+
+model Company {
+  id              String         @id @default(cuid())
+  agencyId        String
+  name            String
+  status          CompanyStatus  @default(ACTIVE)
+  logoFileId      String?        @unique
+  document        String?
+  contactName     String?
+  contactEmail    String?
+  contactPhone    String?
+  website         String?
+  notes           String?
+  internalOwnerId String?
+  contractStatus  ContractStatus @default(ACTIVE)
+  contractStart   DateTime?
+  contractEnd     DateTime?
+  platforms       Platform[]
+  deletedAt       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  agency             Agency                @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  logo               StoredFile?           @relation("CompanyLogo", fields: [logoFileId], references: [id], onDelete: SetNull)
+  internalOwner      User?                 @relation("CompanyOwner", fields: [internalOwnerId], references: [id], onDelete: SetNull)
+  goals              CompanyGoal[]
+  folders            Folder[]
+  tasks              Task[]
+  posts              Post[]
+  events             CalendarEvent[]
+  financeEntries     FinanceEntry[]
+  financeRecurrences FinanceRecurrence[]
+  commissions        Commission[]
+  memberAccess       MemberCompanyAccess[]
+
+  @@index([agencyId, deletedAt])
+  @@map("company")
+}
+
+/// Meta mensal de postagens. Vale a partir do mês indicado até a próxima meta cadastrada.
+model CompanyGoal {
+  id          String   @id @default(cuid())
+  companyId   String
+  /// Primeiro dia do mês (00:00 em America/Sao_Paulo, gravado em UTC)
+  month       DateTime
+  postsTarget Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, month])
+  @@map("company_goal")
+}
+
+model Folder {
+  id        String    @id @default(cuid())
+  agencyId  String
+  companyId String
+  name      String
+  position  Float     @default(0)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  agency  Agency  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  tasks   Task[]
+
+  @@index([companyId, deletedAt])
+  @@map("folder")
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  agencyId    String
+  companyId   String
+  folderId    String
+  title       String
+  description String?
+  notes       String?
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(NORMAL)
+  assigneeId  String?
+  startDate   DateTime?
+  dueDate     DateTime?
+  position    Float        @default(0)
+  completedAt DateTime?
+  createdById String?
+  deletedAt   DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  agency      Agency          @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  company     Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  folder      Folder          @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  assignee    User?           @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdBy   User?           @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  subtasks    Subtask[]
+  checklist   ChecklistItem[]
+  comments    TaskComment[]
+  attachments StoredFile[]    @relation("TaskAttachments")
+
+  @@index([agencyId, deletedAt, dueDate])
+  @@index([folderId, status, position])
+  @@map("task")
+}
+
+model Subtask {
+  id         String    @id @default(cuid())
+  taskId     String
+  title      String
+  done       Boolean   @default(false)
+  assigneeId String?
+  dueDate    DateTime?
+  position   Float     @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  task     Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  assignee User? @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  @@index([taskId])
+  @@map("subtask")
+}
+
+model ChecklistItem {
+  id        String   @id @default(cuid())
+  taskId    String
+  label     String
+  done      Boolean  @default(false)
+  position  Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("checklist_item")
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  authorId  String?
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  task   Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([taskId, createdAt])
+  @@map("task_comment")
+}
+
+enum ContentType {
+  VIDEO
+  IMAGE
+  CAROUSEL
+  OTHER
+}
+
+enum ProductionStage {
+  IDEA
+  CREATING
+  EDITING
+  REVIEW
+  READY
+}
+
+enum ApprovalStatus {
+  NOT_SUBMITTED
+  PENDING
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+/// Status de distribuição por plataforma.
+/// SCHEDULED_INTERNAL: agendado só no GT Studio.
+/// SCHEDULED_PLATFORM: agendamento confirmado pela API da plataforma.
+enum DistributionStatus {
+  NOT_SCHEDULED
+  SCHEDULED_INTERNAL
+  SCHEDULED_PLATFORM
+  PUBLISHING
+  PUBLISHED
+  FAILED
+}
+
+model Post {
+  id              String          @id @default(cuid())
+  agencyId        String
+  companyId       String
+  title           String
+  description     String?
+  caption         String?
+  contentType     ContentType     @default(VIDEO)
+  productionStage ProductionStage @default(IDEA)
+  approvalStatus  ApprovalStatus  @default(NOT_SUBMITTED)
+  assigneeId      String?
+  /// Data e horário previstos para publicação
+  plannedAt       DateTime?
+  internalNotes   String?
+  createdById     String?
+  deletedAt       DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  agency    Agency         @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  company   Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  assignee  User?          @relation("PostAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdBy User?          @relation("PostCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  targets   PostTarget[]
+  approvals PostApproval[]
+  media     StoredFile[]   @relation("PostMedia")
+
+  @@index([agencyId, deletedAt, plannedAt])
+  @@index([companyId])
+  @@map("post")
+}
+
+/// Registro individual de publicação por plataforma.
+model PostTarget {
+  id            String             @id @default(cuid())
+  postId        String
+  platform      Platform
+  status        DistributionStatus @default(NOT_SCHEDULED)
+  scheduledAt   DateTime?
+  publishedAt   DateTime?
+  externalId    String?
+  externalUrl   String?
+  /// true quando a publicação foi registrada manualmente (sem API)
+  manual        Boolean            @default(false)
+  attempts      Int                @default(0)
+  lastAttemptAt DateTime?
+  lastError     String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, platform])
+  @@index([status, scheduledAt])
+  @@index([publishedAt])
+  @@map("post_target")
+}
+
+model PostApproval {
+  id        String         @id @default(cuid())
+  postId    String
+  status    ApprovalStatus
+  comment   String?
+  actorId   String?
+  createdAt DateTime       @default(now())
+
+  post  Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([postId, createdAt])
+  @@map("post_approval")
+}
+
+enum EventCategory {
+  RECORDING
+  EDITING
+  MEETING
+  TASK
+  PUBLICATION
+  APPROVAL
+  CUSTOM
+}
+
+/// Compromissos cadastrados manualmente. Prazos de demandas e agendamentos
+/// de postagens são exibidos no calendário a partir dos registros originais.
+model CalendarEvent {
+  id          String        @id @default(cuid())
+  agencyId    String
+  companyId   String?
+  title       String
+  description String?
+  category    EventCategory @default(CUSTOM)
+  startAt     DateTime
+  endAt       DateTime
+  allDay      Boolean       @default(false)
+  assigneeId  String?
+  createdById String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  agency    Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  assignee  User?    @relation("EventAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdBy User?    @relation("EventCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([agencyId, startAt])
+  @@map("calendar_event")
+}
+
+enum EntryType {
+  INCOME
+  EXPENSE
+}
+
+enum EntryStatus {
+  PENDING
+  PAID
+  CANCELED
+}
+
+enum RecurrenceFrequency {
+  MONTHLY
+  YEARLY
+}
+
+model FinanceEntry {
+  id               String      @id @default(cuid())
+  agencyId         String
+  companyId        String?
+  description      String
+  type             EntryType
+  amountCents      Int
+  category         String
+  /// Data de competência do lançamento
+  date             DateTime
+  dueDate          DateTime?
+  paidAt           DateTime?
+  status           EntryStatus @default(PENDING)
+  recurrenceId     String?
+  /// Período gerado pela recorrência (YYYY-MM), evita duplicidade
+  recurrencePeriod String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  agency     Agency             @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  company    Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  recurrence FinanceRecurrence? @relation(fields: [recurrenceId], references: [id], onDelete: SetNull)
+
+  @@unique([recurrenceId, recurrencePeriod])
+  @@index([agencyId, date])
+  @@index([agencyId, paidAt])
+  @@map("finance_entry")
+}
+
+model FinanceRecurrence {
+  id          String              @id @default(cuid())
+  agencyId    String
+  companyId   String?
+  description String
+  type        EntryType
+  amountCents Int
+  category    String
+  frequency   RecurrenceFrequency @default(MONTHLY)
+  dayOfMonth  Int
+  startDate   DateTime
+  endDate     DateTime?
+  active      Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  agency  Agency         @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  company Company?       @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  entries FinanceEntry[]
+
+  @@index([agencyId, active])
+  @@map("finance_recurrence")
+}
+
+model Commission {
+  id          String      @id @default(cuid())
+  agencyId    String
+  companyId   String?
+  beneficiary String
+  description String
+  amountCents Int
+  dueDate     DateTime
+  status      EntryStatus @default(PENDING)
+  paidAt      DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  agency  Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  company Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([agencyId, dueDate])
+  @@map("commission")
+}
+
+model FinancialGoal {
+  id                 String   @id @default(cuid())
+  agencyId           String
+  month              DateTime
+  revenueTargetCents Int
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@unique([agencyId, month])
+  @@map("financial_goal")
+}
+
+enum IntegrationStatus {
+  NOT_CONFIGURED
+  CONNECTED
+  ERROR
+  DISABLED
+}
+
+model Integration {
+  id                String            @id @default(cuid())
+  agencyId          String
+  platform          Platform
+  status            IntegrationStatus @default(NOT_CONFIGURED)
+  accountName       String?
+  externalAccountId String?
+  connectedAt       DateTime?
+  lastError         String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  agency     Agency                 @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  credential IntegrationCredential?
+
+  @@unique([agencyId, platform])
+  @@map("integration")
+}
+
+/// Tokens OAuth cifrados (AES-256-GCM) com INTEGRATION_ENCRYPTION_KEY.
+model IntegrationCredential {
+  id                    String    @id @default(cuid())
+  integrationId         String    @unique
+  accessTokenEncrypted  String
+  refreshTokenEncrypted String?
+  expiresAt             DateTime?
+  scopes                String[]
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  integration Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@map("integration_credential")
+}
+
+model StoredFile {
+  id           String   @id @default(cuid())
+  agencyId     String
+  filename     String
+  mimeType     String
+  size         Int
+  storageKey   String   @unique
+  uploadedById String?
+  taskId       String?
+  postId       String?
+  createdAt    DateTime @default(now())
+
+  agency      Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  uploadedBy  User?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  task        Task?    @relation("TaskAttachments", fields: [taskId], references: [id], onDelete: Cascade)
+  post        Post?    @relation("PostMedia", fields: [postId], references: [id], onDelete: Cascade)
+  companyLogo Company? @relation("CompanyLogo")
+
+  @@index([taskId])
+  @@index([postId])
+  @@map("stored_file")
 }

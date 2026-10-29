@@ -45,5 +45,17 @@ function getSessionWithHeaders(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/em-construcao/:path*", "/primeiro-acesso/:path*"],
+  matcher: [
+    "/em-construcao/:path*",
+    "/primeiro-acesso/:path*",
+    "/dashboard/:path*",
+    "/postagens/:path*",
+    "/demandas/:path*",
+    "/calendario/:path*",
+    "/financeiro/:path*",
+    "/relatorios/:path*",
+    "/empresas/:path*",
+    "/configuracoes/:path*",
+    "/api/arquivos/:path*",
+  ],
 };

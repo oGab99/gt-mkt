@@ -46,3 +46,6 @@ next-env.d.ts
 !.env.example
 
 /src/generated/prisma
+
+# Arquivos enviados pelo sistema
+/storage

@@ -67,7 +67,7 @@ export async function changePasswordAction(input: {
       newPassword,
       keepSessionToken: session.session.token,
     });
-    return { ok: true, redirectTo: "/em-construcao" };
+    return { ok: true, redirectTo: "/dashboard" };
   } catch (error) {
     console.error("[senha] Erro ao alterar senha", error);
     return { ok: false, error: "Não foi possível alterar a senha agora. Tente novamente." };
