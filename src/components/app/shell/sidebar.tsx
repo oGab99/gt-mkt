@@ -25,10 +25,7 @@ function Brand({ collapsed }: { collapsed: boolean }) {
       {collapsed ? (
         <Image src="/images/gt-studio/logo-mark.png" alt="" width={36} height={36} className="size-9" priority />
       ) : (
-        <span className="flex min-w-0 flex-col">
-          <Image src="/images/gt-studio/logo-wordmark.png" alt="" width={1328} height={327} className="h-[26px] w-auto" priority />
-          <span className="mt-1.5 text-[11px] font-medium tracking-[0.14em] text-muted uppercase">Gestão de Marketing</span>
-        </span>
+        <Image src="/images/gt-studio/logo-wordmark.png" alt="" width={1328} height={327} className="h-[26px] w-auto" priority />
       )}
     </Link>
   );
